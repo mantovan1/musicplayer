@@ -5,7 +5,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import Inicio from './pages/Inicio/index';
 
-
 const Stack = createStackNavigator();
 
 export default function App() {

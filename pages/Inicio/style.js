@@ -9,31 +9,31 @@ export default StyleSheet.create({
 		alignItems: 'center',
 		backgroundColor: 'black'
 	},
-	playlist: {
+	listaMusicas: {
 		width:  Dimensions.get('screen').width,
 	},
-	song: {
+	musica: {
 		flexDirection: 'row',
 		width: '100%',
 		height: 60,
 		borderBottomWidth: 0.5,
-		borderColor: 'darkgray',
+		borderColor: 'black',
 		alignItems: 'center',
-		backgroundColor: 'rgba(0, 0, 0, 0.5)'
-	},
-	bottom: {
-		width: '100%',
-		height: Dimensions.get('screen').height * 0.15,
 		backgroundColor: '#2e2e2e'
-	}, 
-	sub_bottom: {
+	},
+	inferior: {
 		flexDirection: 'row',
+
 		width: '100%',
-		height: '50%',
+		height: Dimensions.get('screen').height * 0.1,
+		backgroundColor: '#252525',
+	
+		alignSelf: 'flex-end',
 		alignItems: 'center',
 		justifyContent: 'space-around'
+
 	},
-	title: {
+	titulo: {
 		width: 120,
 		fontSize: 15,
 		fontWeight: 'bold',
