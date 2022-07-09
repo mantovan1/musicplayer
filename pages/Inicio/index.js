@@ -1,63 +1,88 @@
 import React, { useEffect, useState } from 'react'
 
-import { FlatList, ImageBackground, Text, TouchableOpacity, View } from 'react-native'
+//Components
+
+import { FlatList, Text, TouchableOpacity, View } from 'react-native'
+
+//Módulos de aúdio
 
 import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
+
+//Icons e Styles
 
 import { MaterialCommunityIcons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 import styles from './style';
 
-export default function App() {
+//
+
+export default function App({navigation}) {
+
+	console.disableYellowBox = true;
+
+	const [musica, setMusica] = useState(null);
+	const [listaMusicas, setListaMusicas] = useState(null);
+
+	const [nomeMusica, setNomeMusica] = useState(null);
+
+	const [estaTocando, setEstaTocando] = useState(false);
 
 	/////////////////////////////////////////
 
-	const [sound, setSound] = useState(null);
-	const [isPlaying, setIsPlaying] = useState(false);
+	Audio.setAudioModeAsync({
+		allowsRecordingIOS: false,
+		staysActiveInBackground: true,
+		interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DUCK_OTHERS,
+		playsInSilentModeIOS: true,
+		shouldDuckAndroid: true,
+		interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
+		playThroughEarpieceAndroid: false
+	 });
 
-	const [selected, setSelected] = useState(null);
+	const tocarMusica = async (musicaSelecionada) => {
 
-	async function playSound(song) {
-		console.log('Loading Sound');
+		setNomeMusica(musicaSelecionada.filename);
 
-		setSelected(song.filename);
+		const { sound } = await Audio.Sound.createAsync(musicaSelecionada);
 
-		const { sound } = await Audio.Sound.createAsync(
-			song
-		);
-		setSound(sound);
-	
-		console.log('Playing Sound');
-		await sound.playAsync();
-		setIsPlaying(true);
-	}
-	
-	useEffect(() => {
-		return sound
-		  ? () => {
-			  console.log('Unloading Sound');
-			  sound.unloadAsync();
-			  setIsPlaying(false);
-			}
-		  : undefined;
-	}, [sound]);
+		setMusica(sound);
 
-	async function stopSound() {
-		setIsPlaying(!isPlaying);
+		//console.debug(sound);
+
+		setEstaTocando(true);
 		
-		if(isPlaying) {
-			sound.pauseAsync();
+		await sound.playAsync();
+
+	}
+
+	const pausarOuTocarMusica = async () => {
+
+		setEstaTocando(!estaTocando);
+		
+		if(estaTocando) {
+			await musica.pauseAsync();
 		} else {
-			await sound.playAsync();
+			await musica.playAsync();
 		}
 			
 	}
 
-	/////////////////////////////////////////
-	
+	useEffect(() => {
+		return musica? () => {
 
-	const [songs, setSongs] = useState(null);
+			musica.unloadAsync();
+			handleEstaTocandoChange();
+		}
+		: undefined;
+		
+	}, [musica]);
+
+	const handleEstaTocandoChange = async () => {
+		estaTocando(false)
+	}
+
+	/////////////////////////////////////////
 	
 	useEffect(() => {
 		getPermission();
@@ -71,71 +96,106 @@ export default function App() {
 			const { status, canAskAgain } = await MediaLibrary.requestPermissionsAsync();
 			
 			if (status === 'denied' && canAskAgain) {
-			  // display some allert or request again to read media files.
-			  getPermission();
+				// display some allert or request again to read media files.
+			  	getPermission();
 			}
 	  
 			if (status === 'granted') {
-			  // we want to get all the audio files
-			  getAudioFiles();
+			  	// we want to get all the audio files
+			  	getAudioFiles();
 			}
 	  
 			if (status === 'denied' && !canAskAgain) {
-			  // we want to display some error to the user
+			  	// we want to display some error to the user
 			}
 		}
 
 		if (permission.granted) {
-			// we want to get all the audio files
 			getAudioFiles();
-		 }
-		 if (!permission.canAskAgain && !permission.granted) {
+		}
+
+		if (!permission.canAskAgain && !permission.granted) {
 			console.log("user denied and we can't ask again");
-		 }
+		}
+
 	};
 
+	function ordenarLista ( a, b ) {
+		if ( a.filename < b.filename ){
+		  return -1;
+		}
+		if ( a.filename > b.filename ){
+		  return 1;
+		}
+		return 0;
+	}
+
 	const getAudioFiles = async () => {
-		let media = await MediaLibrary.getAssetsAsync({ mediaType: 'audio' });
-		await setSongs(media.assets);
-		console.debug(songs);
-	 };
+		let midia = await MediaLibrary.getAssetsAsync({ mediaType: 'audio' });
+
+		midia = await MediaLibrary.getAssetsAsync({
+			mediaType: 'audio',
+			first: midia.totalCount,
+		});
+
+		const midiaMP4 = [];
+
+		for (var i = 0; i < midia.totalCount; i++) {
+
+				const filename = midia.assets[i].filename;
+
+				if(filename.slice(-3) == 'm4a') {
+					
+					midiaMP4.push(midia.assets[i]);
+
+				}
+		}
+
+		midiaMP4.sort(ordenarLista);
+
+		await setListaMusicas(midiaMP4);
+
+	};
+	 
+	/////////////////////////////////////////
+
+	function ListaMusicasRender({musica}) {
+		return (
+			<TouchableOpacity style={styles.musica} onPress={() => tocarMusica(musica)}>
+				<MaterialCommunityIcons name="music-box" size={24} color="#b491c8" style={{marginHorizontal: 10}} />
+				<Text  style={{color: 'white', width: 250, flexWrap: 'wrap'}}>
+					{musica.filename.slice(0, -4)}
+				</Text>
+			</TouchableOpacity>
+		)
+	}
 	
 	return (
-		<ImageBackground style={styles.container} source={require('../../assets/background.jpeg')}>
-			{/*}<Text style={{width: '100%', textAlign: 'center', backgroundColor: 'white'}}>Music App</Text>{*/}
+		<View style={styles.container}>
 
 			<FlatList
-			data={songs}
-			style={styles.playlist}
-			renderItem={( { item } ) => (
-				<TouchableOpacity style={styles.song} onPress={() => {playSound(item)}}>
-					<MaterialCommunityIcons name="music-box" size={24} color="#fc9eff" style={{marginHorizontal: 10}} />
-					<Text style={{color: 'white'}}>
-						{item.filename}
-					</Text>
-				</TouchableOpacity>
+			data={listaMusicas}
+			style={styles.listaMusicas}
+			renderItem = {( { item } ) => (
+				<ListaMusicasRender musica={item} />
 			)} />
 
-			<View style={styles.bottom}>
-				<View style={styles.sub_bottom}>
-					<MaterialCommunityIcons name="music-circle" size={50} color="#fc9eff" />
-					<Text numberOfLines={2} style={styles.title}>
-						{selected}
-					</Text>
-					<TouchableOpacity onPress={() => stopSound()}>
-						<MaterialCommunityIcons name={isPlaying?"pause-circle-outline":"play-circle-outline"} size={40} color="#fc9eff" />
-					</TouchableOpacity>
-				</View>
+			<View style={styles.inferior}>
 
-				{/*}<View style={{width: '100%', height: 1.5, backgroundColor: 'black'}} /> {*/}
+				<MaterialCommunityIcons name="music-circle" size={50} color="darkgray" />
 
-				<View style={[styles.sub_bottom, {backgroundColor: '#252525'}]}>
-					<MaterialCommunityIcons name="headset" size={35} color="#fc9eff" />
-					<MaterialCommunityIcons name="album" size={35} color="#fc9eff" />
-					<MaterialIcons name="photo" size={35} color="#fc9eff" />
+				<Text numberOfLines={2} style={styles.titulo}>
+					{nomeMusica}
+				</Text>
+
+				<View style={{width: 50}}>
+				{musica &&	
+				<TouchableOpacity onPress={() => pausarOuTocarMusica()}>
+					<MaterialCommunityIcons name={estaTocando?"pause-circle-outline":"play-circle-outline"} size={45} color="darkgray" />
+				</TouchableOpacity>
+				}
 				</View>
-				
 			</View>
-		</ImageBackground>
+		</View>
 	)
 }
